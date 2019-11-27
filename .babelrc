@@ -1,0 +1,11 @@
+{
+  "plugins": [
+    // "transform-decorators-legacy",
+    ["@babel/plugin-proposal-decorators", { "legacy": true }],
+    ["module-alias", { "src": "./src", "expose": "@" }],
+    ["import", { "libraryName": "antd", "style": "css" }]
+  ],
+  "presets": [
+    "next/babel",
+  ]
+}

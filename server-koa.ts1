@@ -1,0 +1,65 @@
+// import * as koa from 'koa';
+const koa = require('koa');
+const router = require('koa-router');
+const next = require('next');
+import { RouterContext } from 'koa-router';
+
+const Server = new koa();
+const Router = new router();
+
+const dev = process.env.NODE_ENV !== 'production';
+const app = next({ dev });
+const handle = app.getRequestHandler();
+
+app
+  .prepare()
+  .then(() => {
+    serverRun();
+  })
+  .catch((ex: any) => {
+    console.log(ex.stack);
+    process.exit(1);
+  })
+
+// 使用 koa 的话，页面可以渲染，但是服务端渲染在浏览器看，状态码是404
+function serverRun() {
+  // 不能放后面，不然接口会404，动态路由也会404
+  // api 接口
+  const controllers = require('./server/controller');
+  Server.use(controllers.routes());
+  // 页面
+  Server.use(Router.routes());
+  Server.use(Router.allowedMethods());
+
+  // 匹配URL为 `/` 的路由，然后渲染 `/` 对应的 `page/index.tsx` 文件
+  Router.get('/', async (ctx: RouterContext, next: () => Promise<any>) => {
+    await app.render(ctx.req, ctx.res, '/');
+    next();
+  });
+
+  // 匹配URL为 `/about` 的路由，然后渲染 `/about` 对应的 `page/about.tsx` 文件
+  Router.get('/about', async (ctx: RouterContext, next: () => Promise<any>) => {
+    await app.render(ctx.req, ctx.res, '/about')
+    next();
+  });
+
+  // 匹配URL为 `/detail/:id` 的路由，添加 `params 参数`，然后渲染 `/detail` 对应的 `page/detail.tsx` 文件
+  Router.get('/detail/:id', async (ctx: RouterContext, next: () => Promise<any>) => {
+    await app.render(ctx.req, ctx.res, '/detail', {
+      id: ctx.params.id
+    });
+    next();
+  });
+
+  Router.get('*', async (ctx: RouterContext, next: () => Promise<any>) => {
+    ctx.status = 200;
+    ctx.res.statusCode = 200;
+    ctx.response.status = 200;
+    await handle(ctx.req, ctx.res);
+    next();
+  })
+
+  Server.listen(3000, () => {
+    console.log('> Ready on http://localhost:3000');
+  });
+}
